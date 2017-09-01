@@ -34,6 +34,12 @@ class CurlUtils
     public $userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1';
 
 
+    // curl output info
+    public $info = [
+        'size_download' => 0,
+    ];
+
+
     /**
      * curl function
      * @param string $url
@@ -56,7 +62,7 @@ class CurlUtils
      * @param string $callback
      * @return bool
      */
-    public function curlMulti($urls = [], $callback = '')
+    public function curlMulti($urls = [], $callback = null)
     {
         if (!$urls || !is_array($urls)) {
             return false;
@@ -88,9 +94,19 @@ class CurlUtils
 
             while (($info = curl_multi_info_read($mh)) != false) {
                 if ($info["result"] == CURLE_OK) {
+
+                    // stats download size
+                    $i = curl_getinfo($info['handle']);
+                    $this->info['size_download'] += $i['size_download'];
+
+                    // get content and callback
                     $output = curl_multi_getcontent($info['handle']);
                     curl_multi_remove_handle($mh, $info['handle']);
-                    $callback($output);
+
+                    // callback
+                    if ($callback) {
+                        $callback($output);
+                    }
                 }
             }
         }
