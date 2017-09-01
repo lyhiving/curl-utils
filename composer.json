@@ -1,0 +1,14 @@
+{
+  "name": "xxtime/curlutils",
+  "type": "library",
+  "description": "curl multi for spider and more",
+  "homepage": "https://github.com/xxtime/curlutils",
+  "require": {
+    "php": ">=5.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Xxtime\\CurlUtils\\": "src/"
+    }
+  }
+}
