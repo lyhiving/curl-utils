@@ -13,31 +13,42 @@ class CurlUtils
     public $thread = 5;
 
     // curl options
-    public $curlOptions;
+    public $options = null;
 
-    // timeout for connect
-    public $connectTimeout = 10;
-
-    // timeout
-    public $timeout = 30;
-
-    // max deep
-    public $maxredirs = 5;
-
-    // user cookie
-    public $cookies;
-
-    // headers
-    public $headers = ['accept-language: en-US,en;q=0.8', 'Cookie: locale=en_US'];
-
-    // user agent [mobile iphone]
-    public $userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1';
-
+    // default curl options
+    private $defaultOptions = [
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_HEADER         => false,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_AUTOREFERER    => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 5,
+        CURLOPT_COOKIEFILE     => null,
+        CURLOPT_COOKIEJAR      => null,
+        CURLOPT_HTTPHEADER     => ['accept-language: en-US,en;q=0.8', 'Cookie: locale=en_US'],
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1',
+    ];
 
     // curl output info
-    public $info = [
+    private $info = [
         'size_download' => 0,
+        'task_total'    => 0,
+        'task_success'  => 0,
+        'task_failed'   => 0,
+        'time_total'    => 0,
     ];
+
+
+    /**
+     * get task info
+     * @return array
+     */
+    public function getInfo()
+    {
+        $this->info['task_failed'] = $this->info['task_total'] - $this->info['task_success'];
+        return $this->info;
+    }
 
 
     /**
@@ -48,6 +59,9 @@ class CurlUtils
      */
     public function curl($url = '', $post = '')
     {
+        if ($this->options === null) {
+            $this->options = $this->defaultOptions;
+        }
         $ch = $this->curlInit($url, $post);
         $output = curl_exec($ch);
         curl_close($ch);
@@ -68,7 +82,12 @@ class CurlUtils
             return false;
         }
 
+        if ($this->options === null) {
+            $this->options = $this->defaultOptions;
+        }
+
         foreach ($urls as $url) {
+            $this->info['task_total'] += 1;
             $handles[md5($url)] = $this->curlInit($url);
         }
 
@@ -107,6 +126,8 @@ class CurlUtils
                     if ($callback) {
                         $callback($output);
                     }
+
+                    $this->info['task_success'] += 1;
                 }
             }
         }
@@ -124,18 +145,8 @@ class CurlUtils
     private function curlInit($url = '', $post = '')
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_AUTOREFERER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, $this->maxredirs);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookies);
-        curl_setopt($ch, CURLOPT_COOKIEJAR, $this->cookies);
+        curl_setopt_array($ch, $this->options);
         if ($post) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
