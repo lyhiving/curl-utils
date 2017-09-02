@@ -1,8 +1,8 @@
 {
-  "name": "xxtime/curlutils",
+  "name": "xxtime/curl-utils",
   "type": "library",
   "description": "curl multi for spider and more",
-  "homepage": "https://github.com/xxtime/curlutils",
+  "homepage": "https://github.com/xxtime/curl-utils",
   "require": {
     "php": ">=5.5"
   },
