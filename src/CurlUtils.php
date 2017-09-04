@@ -16,7 +16,7 @@ class CurlUtils
     public $options = null;
 
     // default curl options
-    private $defaultOptions = [
+    protected $defaultOptions = [
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_HEADER         => false,
@@ -31,13 +31,120 @@ class CurlUtils
     ];
 
     // curl output info
-    private $info = [
+    protected $info = [
         'size_download' => 0,
         'task_total'    => 0,
         'task_success'  => 0,
-        'task_failed'   => 0,
+        'task_fail'     => 0,
         'time_total'    => 0,
     ];
+
+    // task pool
+    protected $taskPool = [];
+
+    // task dict
+    protected $taskDict = [];
+
+    // running task number
+    protected $running = null;
+
+    // curl multi handle
+    protected $mh;
+
+
+    /**
+     * @param array $urls
+     * @param array $options
+     * @param null $callback
+     */
+    public function addTask($urls = [], $options = [], $callback = null)
+    {
+        if (!is_array($urls)) {
+            $urls = [$urls];
+        }
+
+        foreach ($urls as $url) {
+            $this->taskPool[md5($url)] = [
+                'url'      => $url,
+                'options'  => $options,
+                'callback' => $callback,
+            ];
+        }
+        $this->taskDict += $this->taskPool;
+
+        $this->info['task_total'] += count($urls);
+    }
+
+
+    /**
+     * curl multi
+     * @return bool
+     */
+    public function curlMultiRun()
+    {
+        $startTime = microtime(true);
+
+        $this->mh = curl_multi_init();
+
+        $this->checkTask();
+
+        // $this->running && $mrc == CURLM_OK
+        while ($this->running) {
+            if (curl_multi_select($this->mh) == -1) {
+                usleep(100);
+            }
+
+            $this->curlMultiExec();
+
+            while (($info = curl_multi_info_read($this->mh)) != false) {
+                if ($info["result"] == CURLE_OK) {
+
+                    // stats download size
+                    $i = curl_getinfo($info['handle']);
+                    $this->info['size_download'] += $i['size_download'];
+
+                    // get content and close handle
+                    $output = curl_multi_getcontent($info['handle']);
+                    curl_multi_remove_handle($this->mh, $info['handle']);
+                    curl_close($info['handle']);
+
+                    // callback
+                    call_user_func_array($this->taskDict[md5($i['url'])]['callback'], [$output]);
+
+                    $this->info['task_success'] += 1;
+                }
+
+                if ($info["result"] != CURLE_OK) {
+                    $this->info['task_fail'] += 1;
+                }
+
+                $this->checkTask();
+            }
+        }
+
+        curl_multi_close($this->mh);
+
+        $this->info['time_total'] = microtime(true) - $startTime;
+    }
+
+
+    /**
+     * curl function
+     * @param string $url
+     * @param string $post
+     * @param array $options
+     * @return mixed
+     */
+    public function curl($url = '', $post = '', $options = [])
+    {
+        if ($options === null) {
+            $options = $this->defaultOptions;
+        }
+        $ch = $this->curlInit($url, $options, $post);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
 
 
     /**
@@ -46,107 +153,59 @@ class CurlUtils
      */
     public function getInfo()
     {
-        $this->info['task_failed'] = $this->info['task_total'] - $this->info['task_success'];
         return $this->info;
     }
 
 
     /**
-     * curl function
-     * @param string $url
-     * @param string $post
-     * @return mixed
+     * check and add task into pool
      */
-    public function curl($url = '', $post = '')
+    protected function checkTask()
     {
-        if ($this->options === null) {
-            $this->options = $this->defaultOptions;
+        if (!$this->taskPool) {
+            return false;
         }
-        $ch = $this->curlInit($url, $post);
-        $output = curl_exec($ch);
-        curl_close($ch);
-        return $output;
+
+        $count = min($this->thread - $this->running, count($this->taskPool));
+
+        while ($count > 0) {
+            $task = array_shift($this->taskPool);
+            if ($task['options'] === null) {
+                $task['options'] = &$this->defaultOptions;
+            }
+            curl_multi_add_handle($this->mh, $this->curlInit($task['url'], $task['options']));
+
+            $count--;
+        }
+
+        $this->curlMultiExec();
     }
 
 
     /**
-     * curl multi
-     * @link http://php.net/manual/zh/function.curl-multi-select.php
-     * @param array $urls
-     * @param string $callback
-     * @return bool
+     * curl_multi_exec
      */
-    public function curlMulti($urls = [], $callback = null)
+    protected function curlMultiExec()
     {
-        if (!$urls || !is_array($urls)) {
-            return false;
-        }
-
-        if ($this->options === null) {
-            $this->options = $this->defaultOptions;
-        }
-
-        foreach ($urls as $url) {
-            $this->info['task_total'] += 1;
-            $handles[md5($url)] = $this->curlInit($url);
-        }
-
-
-        $mh = curl_multi_init();
-        foreach ($handles as $ch) {
-            curl_multi_add_handle($mh, $ch);
-        }
-
-        $active = null;
+        // echo '|';
         do {
-            $mrc = curl_multi_exec($mh, $active);
+            $mrc = curl_multi_exec($this->mh, $this->running);
         } while ($mrc == CURLM_CALL_MULTI_PERFORM);
-
-        while ($active && $mrc == CURLM_OK) {
-            if (curl_multi_select($mh) == -1) {
-                usleep(100);
-            }
-
-            do { // echo '|';
-                $mrc = curl_multi_exec($mh, $active);
-            } while ($mrc == CURLM_CALL_MULTI_PERFORM);
-
-            while (($info = curl_multi_info_read($mh)) != false) {
-                if ($info["result"] == CURLE_OK) {
-
-                    // stats download size
-                    $i = curl_getinfo($info['handle']);
-                    $this->info['size_download'] += $i['size_download'];
-
-                    // get content and callback
-                    $output = curl_multi_getcontent($info['handle']);
-                    curl_multi_remove_handle($mh, $info['handle']);
-
-                    // callback
-                    if ($callback) {
-                        $callback($output);
-                    }
-
-                    $this->info['task_success'] += 1;
-                }
-            }
-        }
-
-        curl_multi_close($mh);
     }
 
 
     /**
      * curl init
      * @param string $url
-     * @param string $post
+     * @param array $options
+     * @param null $post
      * @return resource
      */
-    private function curlInit($url = '', $post = '')
+    protected function curlInit($url = '', $options = [], $post = null)
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt_array($ch, $this->options);
+        curl_setopt($ch, CURLOPT_URL, str_replace(' ', '+', trim($url)));
+        curl_setopt_array($ch, $options);
         if ($post) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
