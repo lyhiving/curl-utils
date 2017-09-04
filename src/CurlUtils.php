@@ -139,7 +139,7 @@ class CurlUtils
      */
     public function curl($url = '', $post = '', $options = [])
     {
-        if ($options === null) {
+        if (!$options) {
             $options = $this->defaultOptions;
         }
         $ch = $this->curlInit($url, $options, $post);
