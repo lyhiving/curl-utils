@@ -109,7 +109,9 @@ class CurlUtils
                     curl_close($info['handle']);
 
                     // callback
-                    call_user_func_array($this->taskDict[md5($i['url'])]['callback'], [$output]);
+                    if ($this->taskDict[md5($i['url'])]['callback']) {
+                        call_user_func_array($this->taskDict[md5($i['url'])]['callback'], [$output]);
+                    }
 
                     $this->info['task_success'] += 1;
                 }
