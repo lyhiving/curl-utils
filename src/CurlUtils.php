@@ -33,6 +33,7 @@ class CurlUtils
     // curl output info
     protected $info = [
         'size_download' => 0,
+        'task_unique'   => 0,
         'task_total'    => 0,
         'task_success'  => 0,
         'task_fail'     => 0,
@@ -42,8 +43,8 @@ class CurlUtils
     // task pool
     protected $taskPool = [];
 
-    // task dict
-    protected $taskDict = [];
+    // task Set
+    protected $taskSet = [];
 
     // running task number
     protected $running = null;
@@ -55,7 +56,7 @@ class CurlUtils
     /**
      * @param array $urls
      * @param array $options
-     * @param null $callback
+     * @param null $callback [$class, 'function']
      */
     public function addTask($urls = [], $options = [], $callback = null)
     {
@@ -64,13 +65,21 @@ class CurlUtils
         }
 
         foreach ($urls as $url) {
-            $this->taskPool[md5($url)] = [
+            $hash = md5($url);
+            if (array_key_exists($hash, $this->taskSet)) {
+                $this->info['task_success'] += 1;
+                continue;
+            }
+            $this->taskSet[$hash] = [
+                'callback' => $callback
+            ];
+
+            $this->taskPool[$hash] = [
                 'url'      => $url,
                 'options'  => $options,
                 'callback' => $callback,
             ];
         }
-        $this->taskDict += $this->taskPool;
 
         $this->info['task_total'] += count($urls);
     }
@@ -109,8 +118,9 @@ class CurlUtils
                     curl_close($info['handle']);
 
                     // callback
-                    if ($this->taskDict[md5($i['url'])]['callback']) {
-                        call_user_func_array($this->taskDict[md5($i['url'])]['callback'], [$output]);
+                    $callback = $this->taskSet[md5($i['url'])]['callback'];
+                    if ($callback) {
+                        call_user_func_array($callback, [$output]);
                     }
 
                     $this->info['task_success'] += 1;
@@ -155,6 +165,7 @@ class CurlUtils
      */
     public function getInfo()
     {
+        $this->info['task_unique'] = count($this->taskSet);
         return $this->info;
     }
 
