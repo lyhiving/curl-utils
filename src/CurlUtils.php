@@ -10,10 +10,10 @@ class CurlUtils
 {
 
     // curl multi thread
-    public $thread = 5;
+    protected $thread = 5;
 
     // default curl options
-    public $options = [
+    protected $options = [
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_HEADER         => false,
@@ -48,6 +48,38 @@ class CurlUtils
 
     // curl multi handle
     protected $mh;
+
+
+    /**
+     * set thread number
+     * @param int $number
+     */
+    public function setThread($number = 0)
+    {
+        $this->thread = $number;
+    }
+
+
+    /**
+     * set curl default options
+     * @param array $options
+     * @param null $type
+     * @return bool
+     */
+    public function setOptions($options = [], $type = null)
+    {
+        if (!is_array($options)) {
+            return false;
+        }
+        foreach ($options as $opt => $value) {
+            if (is_int($opt)) {
+                $this->options[$opt] = $value;
+            }
+            elseif (defined($opt)) {
+                $this->options[constant($opt)] = $value;
+            }
+        }
+    }
 
 
     /**
