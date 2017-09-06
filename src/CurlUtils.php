@@ -12,11 +12,8 @@ class CurlUtils
     // curl multi thread
     public $thread = 5;
 
-    // curl options
-    public $options = null;
-
     // default curl options
-    protected $defaultOptions = [
+    public $options = [
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_HEADER         => false,
@@ -119,7 +116,7 @@ class CurlUtils
 
                     // callback
                     $callback = $this->taskSet[md5($i['url'])]['callback'];
-                    if ($callback) {
+                    if (is_callable($callback)) {
                         call_user_func_array($callback, [$output]);
                     }
 
@@ -150,7 +147,7 @@ class CurlUtils
     public function curl($url = '', $post = '', $options = [])
     {
         if (!$options) {
-            $options = $this->defaultOptions;
+            $options = &$this->options;
         }
         $ch = $this->curlInit($url, $options, $post);
         $output = curl_exec($ch);
@@ -183,8 +180,8 @@ class CurlUtils
 
         while ($count > 0) {
             $task = array_shift($this->taskPool);
-            if ($task['options'] === null) {
-                $task['options'] = &$this->defaultOptions;
+            if (!$task['options']) {
+                $task['options'] = &$this->options;
             }
             curl_multi_add_handle($this->mh, $this->curlInit($task['url'], $task['options']));
 
