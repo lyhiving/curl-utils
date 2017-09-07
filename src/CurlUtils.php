@@ -196,7 +196,7 @@ class CurlUtils
 
                         $this->saveFile($i['url'], $output);
 
-                        $this->logger('Failed: ' . $i['url']);
+                        $this->logger($i['http_code'] . ' ' . $i['url']);
                         $this->info['task_fail'] += 1;
                     }
                 }
