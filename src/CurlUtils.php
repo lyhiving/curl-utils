@@ -217,18 +217,44 @@ class CurlUtils
 
 
     /**
-     * curl function
+     * curl get
      * @param string $url
-     * @param string $post
-     * @param array $options
+     * @param array $data
      * @return mixed
      */
-    public function curl($url = '', $post = '', $options = [])
+    public function get($url = '', $data = [])
     {
-        if (!$options) {
-            $options = &$this->options;
+        if ($data) {
+            if (strpos($url, '?')) {
+                $url .= '&' . http_build_query($data);
+            }
+            else {
+                $url .= '?' . http_build_query($data);
+            }
         }
-        $ch = $this->curlInit($url, $options, $post);
+        $options = $this->options;
+        $options[CURLOPT_HTTPGET] = true;
+        $ch = $this->curlInit($url, $options);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
+
+
+    /**
+     * curl post
+     * @param string $url
+     * @param null $data
+     * @return mixed
+     */
+    public function post($url = '', $data = null)
+    {
+        $options = $this->options;
+        $options[CURLOPT_POST] = true;
+        if ($data) {
+            $options[CURLOPT_POSTFIELDS] = $data;
+        }
+        $ch = $this->curlInit($url, $options);
         $output = curl_exec($ch);
         curl_close($ch);
         return $output;
@@ -276,18 +302,13 @@ class CurlUtils
      * curl init
      * @param string $url
      * @param array $options
-     * @param null $post
      * @return resource
      */
-    protected function curlInit($url = '', $options = [], $post = null)
+    protected function curlInit($url = '', $options = [])
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, str_replace(' ', '+', trim($url)));
         curl_setopt_array($ch, $options);
-        if ($post) {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
-        }
         return $ch;
     }
 
