@@ -6,6 +6,7 @@ namespace Xxtime\CurlUtils;
 /**
  * CurlUtils for spider
  */
+
 class CurlUtils
 {
 
@@ -43,6 +44,9 @@ class CurlUtils
     // task Set
     protected $taskSet = [];
 
+    // task fail
+    protected $taskFail = [];
+
     // running task number
     protected $running = null;
 
@@ -79,6 +83,27 @@ class CurlUtils
                 $this->options[constant($opt)] = $value;
             }
         }
+    }
+
+
+    /**
+     * get curl options
+     * @return array
+     */
+    public function getOptions()
+    {
+        return $this->options;
+    }
+
+
+    /**
+     * get task info
+     * @return array
+     */
+    public function getInfo()
+    {
+        $this->info['task_unique'] = count($this->taskSet);
+        return $this->info;
     }
 
 
@@ -146,16 +171,38 @@ class CurlUtils
                     curl_multi_remove_handle($this->mh, $info['handle']);
                     curl_close($info['handle']);
 
-                    // callback
-                    $callback = $this->taskSet[md5($i['url'])]['callback'];
-                    if (is_callable($callback)) {
-                        call_user_func_array($callback, [$output]);
+                    // http code 200
+                    $hash = md5($i['url']);
+                    if ($i['http_code'] == 200) {
+                        $callback = $this->taskSet[$hash]['callback'];
+                        if (is_callable($callback)) {
+                            call_user_func_array($callback, [$output]);
+                        }
+
+                        $this->info['task_success'] += 1;
                     }
 
-                    $this->info['task_success'] += 1;
+                    else {
+                        if (array_key_exists($hash, $this->taskFail)) {
+                            $this->taskFail[$hash]['failed'] += 1;
+                        }
+                        else {
+                            $this->taskFail[$hash] = [
+                                'url'      => $i['url'],
+                                'callback' => $this->taskSet[$hash]['callback'],
+                                'failed'   => 1,
+                            ];
+                        }
+
+                        $this->saveFile($i['url'], $output);
+
+                        $this->logger('Failed: ' . $i['url']);
+                        $this->info['task_fail'] += 1;
+                    }
                 }
 
                 if ($info["result"] != CURLE_OK) {
+                    $this->logger('Failed: ' . $i['url']);
                     $this->info['task_fail'] += 1;
                 }
 
@@ -185,17 +232,6 @@ class CurlUtils
         $output = curl_exec($ch);
         curl_close($ch);
         return $output;
-    }
-
-
-    /**
-     * get task info
-     * @return array
-     */
-    public function getInfo()
-    {
-        $this->info['task_unique'] = count($this->taskSet);
-        return $this->info;
     }
 
 
@@ -253,6 +289,53 @@ class CurlUtils
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
         }
         return $ch;
+    }
+
+
+    /**
+     * cache file
+     * @param string $url
+     * @param string $content
+     * @return bool|int
+     */
+    protected function saveFile($url = '', $content = '')
+    {
+        $cacheTime = 3600;
+        if (!$url || !$content) {
+            return false;
+        }
+        $hash = md5($url);
+        $dir = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
+        $path = $dir . '/' . $hash;
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        if (file_exists($path)) {
+            if (time() - filemtime($path) < $cacheTime) {
+                return false;
+            }
+        }
+
+        $fp = fopen($path, 'w');
+        flock($fp, LOCK_EX);
+        fwrite($fp, $content);
+        flock($fp, LOCK_UN);
+        return true;
+    }
+
+
+    /**
+     * logger
+     * @param string $log
+     */
+    protected function logger($log = '')
+    {
+        $fileLogs = __DIR__ . '/../logs.txt';
+        $fp = fopen($fileLogs, 'a');
+        flock($fp, LOCK_EX);
+        fwrite($fp, date('Y-m-d H:i:s') . ' | ' . $log . "\r\n");
+        flock($fp, LOCK_UN);
     }
 
 }
