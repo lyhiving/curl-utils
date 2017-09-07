@@ -177,7 +177,7 @@ class CurlUtils
                     if ($i['http_code'] == 200) {
                         $callback = $this->taskSet[$hash]['callback'];
                         if (is_callable($callback)) {
-                            call_user_func_array($callback, [$output, $this->taskSet[$hash]['argv']]);
+                            call_user_func_array($callback, [$output, $i['url'], $this->taskSet[$hash]['argv']]);
                         }
 
                         $this->info['task_success'] += 1;
