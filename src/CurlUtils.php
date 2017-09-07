@@ -111,8 +111,9 @@ class CurlUtils
      * @param array $urls
      * @param array $options
      * @param null $callback [$class, 'function']
+     * @param array $argv [callback argv]
      */
-    public function addTask($urls = [], $options = [], $callback = null)
+    public function addTask($urls = [], $options = [], $callback = null, $argv = null)
     {
         if (!is_array($urls)) {
             $urls = [$urls];
@@ -125,13 +126,13 @@ class CurlUtils
                 continue;
             }
             $this->taskSet[$hash] = [
-                'callback' => $callback
+                'callback' => $callback,
+                'argv'     => $argv,
             ];
 
             $this->taskPool[$hash] = [
-                'url'      => $url,
-                'options'  => $options,
-                'callback' => $callback,
+                'url'     => $url,
+                'options' => $options,
             ];
         }
 
@@ -176,7 +177,7 @@ class CurlUtils
                     if ($i['http_code'] == 200) {
                         $callback = $this->taskSet[$hash]['callback'];
                         if (is_callable($callback)) {
-                            call_user_func_array($callback, [$output]);
+                            call_user_func_array($callback, [$output, $this->taskSet[$hash]['argv']]);
                         }
 
                         $this->info['task_success'] += 1;
