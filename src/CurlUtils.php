@@ -158,17 +158,22 @@ class CurlUtils
      * add task into task pool
      * @param array $urls
      * @param array $options
-     * @param null $callback [$class, 'function']
-     * @param array $argv [callback argv]
+     * @param null $callback
+     * @param null $argv
+     * @return bool
      */
     public function add($urls = [], $options = [], $callback = null, $argv = null)
     {
         if (!is_array($urls)) {
             $urls = [$urls];
         }
+        if ($callback && !is_callable($callback)) {
+            return false;
+        }
 
         foreach ($urls as $url) {
-            $hash = md5($url);
+            $url = trim($url, '/ ');
+            $hash = $this->urlHash($url);
             if (array_key_exists($hash, $this->taskSet)) {
                 $this->info['task_success'] += 1;
                 continue;
@@ -209,10 +214,12 @@ class CurlUtils
             $this->curlMultiExec();
 
             while (($info = curl_multi_info_read($this->mh)) != false) {
+
+                $i = curl_getinfo($info['handle']);
+
                 if ($info["result"] == CURLE_OK) {
 
                     // stats download size
-                    $i = curl_getinfo($info['handle']);
                     $this->info['size_download'] += $i['size_download'];
 
                     // get content and close handle
@@ -220,17 +227,20 @@ class CurlUtils
                     curl_multi_remove_handle($this->mh, $info['handle']);
                     curl_close($info['handle']);
 
-                    // http code 200
-                    $hash = md5($i['url']);
+                    // http code == 200
+                    $hash = $this->urlHash(rtrim($i['url'], '/'));
                     if ($i['http_code'] == 200) {
-                        $callback = $this->taskSet[$hash]['callback'];
-                        if (is_callable($callback)) {
-                            call_user_func_array($callback, [$output, $i['url'], $this->taskSet[$hash]['argv']]);
+                        if (isset($this->taskSet[$hash])) {
+                            $callback = $this->taskSet[$hash]['callback'];
+                            call_user_func_array($callback, [$output, $i, $this->taskSet[$hash]['argv']]);
                         }
-
+                        else {
+                            // TODO :: default callback
+                        }
                         $this->info['task_success'] += 1;
                     }
 
+                    // http code != 200
                     else {
                         if (array_key_exists($hash, $this->taskFail)) {
                             $this->taskFail[$hash]['failed'] += 1;
@@ -238,7 +248,7 @@ class CurlUtils
                         else {
                             $this->taskFail[$hash] = [
                                 'url'      => $i['url'],
-                                'callback' => $this->taskSet[$hash]['callback'],
+                                'callback' => isset($this->taskSet[$hash]) ? $this->taskSet[$hash]['callback'] : null,
                                 'failed'   => 1,
                             ];
                         }
@@ -251,7 +261,7 @@ class CurlUtils
                 }
 
                 if ($info["result"] != CURLE_OK) {
-                    $this->logger('Failed: ' . $i['url']);
+                    $this->logger('CurlError: ' . $info["result"] . ' ' . $i['url']);
                     $this->info['task_fail'] += 1;
                 }
 
@@ -328,7 +338,7 @@ class CurlUtils
         if (!$url || !$content) {
             return false;
         }
-        $hash = md5($url);
+        $hash = $this->urlHash($url);
         $dir = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
         $path = $dir . '/' . $hash;
 
@@ -358,8 +368,19 @@ class CurlUtils
         $fileLogs = __DIR__ . '/../logs.txt';
         $fp = fopen($fileLogs, 'a');
         flock($fp, LOCK_EX);
-        fwrite($fp, date('Y-m-d H:i:s') . ' | ' . $log . "\r\n");
+        fwrite($fp, date('Y-m-d H:i:sO') . ' | ' . $log . "\r\n");
         flock($fp, LOCK_UN);
+    }
+
+
+    /**
+     * url hash
+     * @param $url
+     * @return string
+     */
+    protected function urlHash($url)
+    {
+        return md5(substr(strstr($url, '://'), 3));
     }
 
 }
