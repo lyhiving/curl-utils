@@ -38,6 +38,9 @@ class CurlUtils
         'time_total'    => 0,
     ];
 
+    // cache time
+    protected $cacheTime = 3600;
+
     // task pool
     protected $taskPool = [];
 
@@ -55,22 +58,11 @@ class CurlUtils
 
 
     /**
-     * set thread number
-     * @param int $number
-     */
-    public function setThread($number = 0)
-    {
-        $this->thread = $number;
-    }
-
-
-    /**
      * set curl default options
      * @param array $options
-     * @param null $type
      * @return bool
      */
-    public function setOptions($options = [], $type = null)
+    public function setOptions($options = [])
     {
         if (!is_array($options)) {
             return false;
@@ -83,6 +75,16 @@ class CurlUtils
                 $this->options[constant($opt)] = $value;
             }
         }
+    }
+
+
+    /**
+     * set thread number
+     * @param int $number
+     */
+    public function setThread($number = 0)
+    {
+        $this->thread = $number;
     }
 
 
@@ -100,7 +102,7 @@ class CurlUtils
      * get task info
      * @return array
      */
-    public function getInfo()
+    public function getTaskInfo()
     {
         $this->info['task_unique'] = count($this->taskSet);
         return $this->info;
@@ -108,12 +110,58 @@ class CurlUtils
 
 
     /**
+     * curl get
+     * @param string $url
+     * @param array $data
+     * @return mixed
+     */
+    public function get($url = '', $data = [])
+    {
+        if ($data) {
+            if (strpos($url, '?')) {
+                $url .= '&' . http_build_query($data);
+            }
+            else {
+                $url .= '?' . http_build_query($data);
+            }
+        }
+        $options = $this->options;
+        $options[CURLOPT_HTTPGET] = true;
+        $ch = $this->curlInit($url, $options);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
+
+
+    /**
+     * curl post
+     * @param string $url
+     * @param null $data
+     * @return mixed
+     */
+    public function post($url = '', $data = null)
+    {
+        $options = $this->options;
+        $options[CURLOPT_POST] = true;
+        if ($data) {
+            $options[CURLOPT_POSTFIELDS] = $data;
+        }
+        $ch = $this->curlInit($url, $options);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
+
+
+    /**
+     * add task into task pool
      * @param array $urls
      * @param array $options
      * @param null $callback [$class, 'function']
      * @param array $argv [callback argv]
      */
-    public function addTask($urls = [], $options = [], $callback = null, $argv = null)
+    public function add($urls = [], $options = [], $callback = null, $argv = null)
     {
         if (!is_array($urls)) {
             $urls = [$urls];
@@ -141,10 +189,10 @@ class CurlUtils
 
 
     /**
-     * curl multi
+     * curl multi run
      * @return bool
      */
-    public function curlMultiRun()
+    public function run()
     {
         $startTime = microtime(true);
 
@@ -218,51 +266,6 @@ class CurlUtils
 
 
     /**
-     * curl get
-     * @param string $url
-     * @param array $data
-     * @return mixed
-     */
-    public function get($url = '', $data = [])
-    {
-        if ($data) {
-            if (strpos($url, '?')) {
-                $url .= '&' . http_build_query($data);
-            }
-            else {
-                $url .= '?' . http_build_query($data);
-            }
-        }
-        $options = $this->options;
-        $options[CURLOPT_HTTPGET] = true;
-        $ch = $this->curlInit($url, $options);
-        $output = curl_exec($ch);
-        curl_close($ch);
-        return $output;
-    }
-
-
-    /**
-     * curl post
-     * @param string $url
-     * @param null $data
-     * @return mixed
-     */
-    public function post($url = '', $data = null)
-    {
-        $options = $this->options;
-        $options[CURLOPT_POST] = true;
-        if ($data) {
-            $options[CURLOPT_POSTFIELDS] = $data;
-        }
-        $ch = $this->curlInit($url, $options);
-        $output = curl_exec($ch);
-        curl_close($ch);
-        return $output;
-    }
-
-
-    /**
      * check and add task into pool
      */
     protected function checkTask()
@@ -322,7 +325,6 @@ class CurlUtils
      */
     protected function saveFile($url = '', $content = '')
     {
-        $cacheTime = 3600;
         if (!$url || !$content) {
             return false;
         }
@@ -334,7 +336,7 @@ class CurlUtils
             mkdir($dir, 0755, true);
         }
         if (file_exists($path)) {
-            if (time() - filemtime($path) < $cacheTime) {
+            if (time() - filemtime($path) < $this->cacheTime) {
                 return false;
             }
         }
