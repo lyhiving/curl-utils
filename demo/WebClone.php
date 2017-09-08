@@ -6,16 +6,17 @@ class WebClone
 
     protected $baseUrl;
 
-    protected $deep;
+    protected $depth;
 
     protected $curlUtils;
 
 
-    public function __construct($url = '', $deep = 0)
+    public function __construct($url = '', $depth = 0)
     {
+        $curlUtils=new CurlUtils();
         // baseUrl must be end with '/'
         $this->baseUrl = $url;
-        $this->deep = $deep;
+        $this->depth = $depth;
         $this->curlUtils = new \Xxtime\CurlUtils\CurlUtils();
     }
 
@@ -31,7 +32,7 @@ class WebClone
             $this->baseUrl,
             null,
             [$this, 'callback'],
-            ['deep' => $this->deep]
+            ['depth' => $this->depth]
         );
         $this->curlUtils->run();
         print_r($this->curlUtils->getTaskInfo());
@@ -63,8 +64,8 @@ class WebClone
         usleep(100000);
 
 
-        // limit deep
-        if ($argv['deep'] == 0) {
+        // limit depth
+        if ($argv['depth'] == 0) {
             return true;
         }
 
@@ -93,7 +94,7 @@ class WebClone
                 $urls,
                 null,
                 [$this, 'callback'],
-                ['deep' => $argv['deep'] - 1]
+                ['depth' => $argv['depth'] - 1]
             );
         }
 
@@ -113,7 +114,7 @@ class WebClone
                 $urls,
                 null,
                 [$this, 'callback'],
-                ['deep' => 0]
+                ['depth' => 0]
             );
         }
 
@@ -133,7 +134,7 @@ class WebClone
                 $urls,
                 null,
                 [$this, 'callback'],
-                ['deep' => 0]
+                ['depth' => 0]
             );
         }
 
@@ -153,7 +154,7 @@ class WebClone
                 $urls,
                 null,
                 [$this, 'callback'],
-                ['deep' => 0]
+                ['depth' => 0]
             );
         }
     }

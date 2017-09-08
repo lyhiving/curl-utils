@@ -42,7 +42,7 @@ class Demo{
             $urls,                  // urls 
             null,                   // curl options
             [$this, 'callback'],    // callback function
-            ['deep' => 5]           // custom argv will be use in callback function
+            ['depth' => 5]           // custom argv will be use in callback function
         );
         $this->curlUtils->run();
     }
@@ -55,8 +55,8 @@ class Demo{
             return true;
         }
 
-        // limit the request deep
-        if ($argv['deep'] == 0) {
+        // limit the request depth
+        if ($argv['depth'] == 0) {
             return true;
         }
 
@@ -67,7 +67,7 @@ class Demo{
             $urls,
             null,
             [$this, 'callback'],
-            ['deep' => $argv['deep'] - 1]
+            ['depth' => $argv['depth'] - 1]
         );
     }
 }
