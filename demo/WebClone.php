@@ -207,6 +207,7 @@ class WebClone
 
 
     /**
+     * URI to URL
      * @param string $uri
      * @param string $locateUrl
      * @return bool|string
@@ -219,14 +220,44 @@ class WebClone
         if (strpos($uri, '?')) {
             $uri = substr($uri, 0, strpos($uri, '?'));
         }
+
         if ($this->isUrl($uri)) {
             return $uri;
         }
-
         if (!$this->isUrl($locateUrl)) {
             return false;
         }
-        return rtrim($locateUrl, '/') . '/' . ltrim($uri, '/');
+
+        $parseUrl = parse_url($locateUrl);
+        if (!isset($parseUrl['path'])) {
+            $parseUrl['path'] = '/';
+        }
+        $dir = dirname($parseUrl['path']);
+        if (substr($dir, -1) !== '/') {
+            $dir .= '/';
+        }
+
+        if (0 === strpos($uri, '/')) {
+            $path = $uri;
+        }
+        // start with '../' './' ''
+        else {
+            $depth = substr_count($uri, '../');
+            $file = substr($uri, strrpos($uri, '/') + 1);
+            if ($depth != 0) {
+                $dirArray = array_slice(array_filter(explode('/', $dir)), 0, -$depth);
+            }
+            else {
+                $dirArray = array_filter(explode('/', $dir));
+            }
+            $path = '/' . implode('/', $dirArray) . '/' . $file;
+        }
+
+        if (isset($parseUrl['port'])) {
+            return $parseUrl['scheme'] . '://' . $parseUrl['host'] . ':' . $parseUrl['port'] . $path;
+        }
+
+        return $parseUrl['scheme'] . '://' . $parseUrl['host'] . $path;
     }
 
 
