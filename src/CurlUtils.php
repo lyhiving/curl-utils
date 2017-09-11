@@ -31,8 +31,8 @@ class CurlUtils
     // curl output info
     protected $info = [
         'size_download' => 0,
-        'task_unique'   => 0,
         'task_total'    => 0,
+        'task_unique'   => 0,
         'task_success'  => 0,
         'task_fail'     => 0,
         'time_total'    => 0,
@@ -175,7 +175,6 @@ class CurlUtils
             $url = trim($url, '/ ');
             $hash = $this->urlHash($url);
             if (array_key_exists($hash, $this->taskSet)) {
-                $this->info['task_success'] += 1;
                 continue;
             }
             $this->taskSet[$hash] = [

@@ -13,7 +13,6 @@ class WebClone
 
     public function __construct($url = '', $depth = 0)
     {
-        $curlUtils=new CurlUtils();
         // baseUrl must be end with '/'
         $this->baseUrl = $url;
         $this->depth = $depth;
@@ -86,7 +85,7 @@ class WebClone
             if (!$tag->href) {
                 continue;
             }
-            $urls[] = $this->uri2url($tag->href, $this->baseUrl);
+            $urls[] = $this->uri2url($tag->href, $url);
         }
         if ($urls) {
             $urls = array_unique($urls);
@@ -106,7 +105,7 @@ class WebClone
             if (!$tag->href) {
                 continue;
             }
-            $urls[] = $this->uri2url($tag->href, $this->baseUrl);
+            $urls[] = $this->uri2url($tag->href, $url);
         }
         if ($urls) {
             $urls = array_unique($urls);
@@ -126,7 +125,7 @@ class WebClone
             if (!$tag->src) {
                 continue;
             }
-            $urls[] = $this->uri2url($tag->src, $this->baseUrl);
+            $urls[] = $this->uri2url($tag->src, $url);
         }
         if ($urls) {
             $urls = array_unique($urls);
@@ -146,7 +145,7 @@ class WebClone
             if (!$tag->src) {
                 continue;
             }
-            $urls[] = $this->uri2url($tag->src, $this->baseUrl);
+            $urls[] = $this->uri2url($tag->src, $url);
         }
         if ($urls) {
             $urls = array_unique($urls);
