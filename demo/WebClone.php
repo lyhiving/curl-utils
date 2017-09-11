@@ -232,8 +232,14 @@ class WebClone
         if (!isset($parseUrl['path'])) {
             $parseUrl['path'] = '/';
         }
-        $dir = dirname($parseUrl['path']);
-        if (substr($dir, -1) !== '/') {
+        if ('/' == substr($parseUrl['path'], -1)) {
+            $dir = $parseUrl['path'];
+        }
+        else {
+            $dir = dirname($parseUrl['path']);
+        }
+
+        if ('/' != substr($dir, -1)) {
             $dir .= '/';
         }
 
@@ -242,15 +248,28 @@ class WebClone
         }
         // start with '../' './' ''
         else {
+            $uri = rtrim($uri, '/');
             $depth = substr_count($uri, '../');
-            $file = substr($uri, strrpos($uri, '/') + 1);
+            if (strrpos($uri, '/') === false) {
+                $file = $uri;
+            }
+            else {
+                $file = substr($uri, strrpos($uri, '/') + 1);
+            }
+
             if ($depth != 0) {
                 $dirArray = array_slice(array_filter(explode('/', $dir)), 0, -$depth);
             }
             else {
                 $dirArray = array_filter(explode('/', $dir));
             }
-            $path = '/' . implode('/', $dirArray) . '/' . $file;
+            if ($dirArray) {
+                $path = '/' . implode('/', $dirArray) . '/' . $file;
+            }
+            else {
+                $path = '/' . $file;
+            }
+
         }
 
         if (isset($parseUrl['port'])) {
