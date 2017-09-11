@@ -6,6 +6,8 @@ class WebClone
 
     protected $baseUrl;
 
+    protected $domain;
+
     protected $depth;
 
     protected $curlUtils;
@@ -13,7 +15,6 @@ class WebClone
 
     public function __construct($url = '', $depth = 0)
     {
-        // baseUrl must be end with '/'
         $this->baseUrl = $url;
         $this->depth = $depth;
         $this->curlUtils = new \Xxtime\CurlUtils\CurlUtils();
@@ -25,8 +26,8 @@ class WebClone
         $this->curlUtils->setOptions([
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
         ]);
-        //$html = $this->curlUtils->get($this->baseUrl);
 
+        $this->domain = $this->domain($this->baseUrl);
         $this->curlUtils->add(
             $this->baseUrl,
             null,
@@ -44,7 +45,7 @@ class WebClone
 
 
         // save file
-        $this->saveFile($url, $content);
+        $this->saveFile($curlInfo, $content);
 
 
         if (strpos($curlInfo['content_type'], 'text/css')) {
@@ -85,6 +86,7 @@ class WebClone
             if (!$tag->href) {
                 continue;
             }
+            // TODO :: filter URL
             $urls[] = $this->uri2url($tag->href, $url);
         }
         if ($urls) {
@@ -159,27 +161,32 @@ class WebClone
     }
 
 
-    protected function saveFile($url = '', $content = '')
+    protected function saveFile($curlInfo = '', $content = '')
     {
         $cacheTime = 3600;
 
-        $uri = $this->url2uri($url);
-
-        if (!$uri || !$content) {
+        if (!$curlInfo || !$content) {
             return false;
         }
 
-        if (strpos($uri, '/')) {
-            $dirPath = __DIR__ . '/' . md5($this->baseUrl) . '/' . substr($uri, 0, strrpos($uri, '/'));
+        $parseUrl = parse_url($curlInfo['url']);
+        if (!isset($parseUrl['path'])) {
+            $parseUrl['path'] = '/';
         }
-        else {
-            $dirPath = __DIR__ . '/' . md5($this->baseUrl) . '/';
+
+        $mimeType = ['html', 'htm'];
+        if ((strpos($curlInfo['content_type'], 'html') !== false)
+            && !in_array(substr($parseUrl['path'], strrpos($parseUrl['path'], '.') + 1), $mimeType)
+        ) {
+            $parseUrl['path'] = rtrim($parseUrl['path'], '/') . '/index.html';
         }
+
+        $dirPath = __DIR__ . '/' . $parseUrl['host'] . dirname($parseUrl['path']);
+        $path = __DIR__ . '/' . $parseUrl['host'] . $parseUrl['path'];
+
         if (!is_dir($dirPath)) {
             mkdir($dirPath, 0755, true);
         }
-
-        $path = $dirPath . substr($uri, strrpos($uri, '/'));
 
         if (file_exists($path)) {
             if (time() - filemtime($path) < $cacheTime) {
@@ -281,24 +288,13 @@ class WebClone
 
 
     /**
-     * @param $url
-     * @return null|string
+     * get domain
+     * @param string $url
+     * @return mixed
      */
-    protected function url2uri($url)
+    protected function domain($url = '')
     {
-        if (!strstr($url, $this->baseUrl)) {
-            return null;
-        }
-        if ($this->baseUrl == $url) {
-            return 'index.html';
-        }
-        $uri = ltrim(str_replace($this->baseUrl, '', $url), '/');
-
-        // TODO :: important bug case fopen error, bug when dir path with '.'
-        if (!strpos($uri, '.')) {
-            $uri = trim($uri, '/') . '/index.html';
-        }
-        return $uri;
+        return parse_url($url)['host'];
     }
 
 
