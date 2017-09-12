@@ -37,6 +37,7 @@ class CurlUtils
         'task_total'    => 0,
         'task_unique'   => 0,
         'task_success'  => 0,
+        'task_cache'    => 0,
         'task_fail'     => 0,
         'time_total'    => 0,
     ];
@@ -344,7 +345,7 @@ class CurlUtils
                             ]
                         );
                     }
-                    $this->info['task_success'] += 1;
+                    $this->info['task_cache'] += 1;
                     continue;
                 }
             }
