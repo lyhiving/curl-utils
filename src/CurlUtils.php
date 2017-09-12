@@ -229,12 +229,18 @@ class CurlUtils
                     // http code == 200
                     $hash = $this->urlHash(rtrim($i['url'], '/'));
                     if ($i['http_code'] == 200) {
+
+                        // set cache
+                        if ($this->cacheTime) {
+                            $this->setCache($i['url'], $output);
+                        }
+
                         if (isset($this->taskSet[$hash])) {
                             $callback = $this->taskSet[$hash]['callback'];
                             call_user_func_array($callback, [$output, $i, $this->taskSet[$hash]['argv']]);
                         }
                         else {
-                            // TODO :: default callback
+                            // TODO :: default callback function
                         }
                         $this->info['task_success'] += 1;
                     }
@@ -252,7 +258,7 @@ class CurlUtils
                             ];
                         }
 
-                        $this->saveFile($i['url'], $output);
+                        // TODO :: error callback function
 
                         $this->logger($i['http_code'] . ' ' . $i['url']);
                         $this->info['task_fail'] += 1;
@@ -327,12 +333,35 @@ class CurlUtils
 
 
     /**
+     * check from cache
+     * @param string $url
+     * @return bool|string
+     */
+    protected function getCache($url = '')
+    {
+        $hash = $this->urlHash($url);
+        $dir = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
+        $path = $dir . '/' . $hash;
+
+        if (file_exists($path)) {
+            if (time() - filemtime($path) < $this->cacheTime) {
+                $fp = fopen($path, 'r');
+                $file = fread($fp, filesize($path));
+                fclose($fp);
+                return $file;
+            }
+        }
+        return false;
+    }
+
+
+    /**
      * cache file
      * @param string $url
      * @param string $content
      * @return bool|int
      */
-    protected function saveFile($url = '', $content = '')
+    protected function setCache($url = '', $content = '')
     {
         if (!$url || !$content) {
             return false;

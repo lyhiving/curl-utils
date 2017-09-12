@@ -90,7 +90,7 @@ class WebClone
             $urls[] = $this->uri2url($tag->href, $url);
         }
         if ($urls) {
-            $urls = array_unique($urls);
+            $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
                 null,
@@ -110,7 +110,7 @@ class WebClone
             $urls[] = $this->uri2url($tag->href, $url);
         }
         if ($urls) {
-            $urls = array_unique($urls);
+            $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
                 null,
@@ -130,7 +130,7 @@ class WebClone
             $urls[] = $this->uri2url($tag->src, $url);
         }
         if ($urls) {
-            $urls = array_unique($urls);
+            $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
                 null,
@@ -150,7 +150,7 @@ class WebClone
             $urls[] = $this->uri2url($tag->src, $url);
         }
         if ($urls) {
-            $urls = array_unique($urls);
+            $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
                 null,
