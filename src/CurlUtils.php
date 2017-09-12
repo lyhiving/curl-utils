@@ -344,6 +344,7 @@ class CurlUtils
                             ]
                         );
                     }
+                    $this->info['task_success'] += 1;
                     continue;
                 }
             }
