@@ -13,11 +13,14 @@ class CurlUtils
     // curl multi thread
     protected $thread = 5;
 
+    // default callback
+    protected $callback = null;
+
     // default curl options
     protected $options = [
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT        => 30,
-        CURLOPT_HEADER         => false,
+        CURLOPT_HEADER         => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_AUTOREFERER    => true,
         CURLOPT_FOLLOWLOCATION => true,
@@ -85,6 +88,16 @@ class CurlUtils
     public function setThread($number = 0)
     {
         $this->thread = $number;
+    }
+
+
+    /**
+     * set default callback
+     * @param null $callback
+     */
+    public function setCallback($callback = null)
+    {
+        $this->callback = $callback;
     }
 
 
@@ -230,6 +243,10 @@ class CurlUtils
                     $hash = $this->urlHash(rtrim($i['url'], '/'));
                     if ($i['http_code'] == 200) {
 
+                        preg_match("/HTTP\/[.\d]{3} 200 OK\r\n([\s\S]*)/", $output, $content);
+                        preg_match("/HTTP\/.+(?=\r\n\r\n)/Usm", $content['0'], $header);
+                        preg_match("/\r\n\r\n([\s\S]*)/", $content['0'], $body);
+
                         // set cache
                         if ($this->cacheTime) {
                             $this->setCache($i['url'], $output);
@@ -237,10 +254,23 @@ class CurlUtils
 
                         if (isset($this->taskSet[$hash])) {
                             $callback = $this->taskSet[$hash]['callback'];
-                            call_user_func_array($callback, [$output, $i, $this->taskSet[$hash]['argv']]);
+                            call_user_func_array($callback,
+                                [
+                                    $body['1'],
+                                    $this->getHeader($header['0']) + ['url' => $i['url']],
+                                    $this->taskSet[$hash]['argv']
+                                ]
+                            );
                         }
                         else {
-                            // TODO :: default callback function
+                            // TODO :: default callback function argv
+                            call_user_func_array($this->callback,
+                                [
+                                    $body['1'],
+                                    $this->getHeader($header['0']) + ['url' => $i['url']],
+                                    null
+                                ]
+                            );
                         }
                         $this->info['task_success'] += 1;
                     }
@@ -292,7 +322,32 @@ class CurlUtils
         $count = min($this->thread - $this->running, count($this->taskPool));
 
         while ($count > 0) {
+            if (!$this->taskPool) {
+                break;
+            }
             $task = array_shift($this->taskPool);
+
+            // read from cache
+            if ($this->cacheTime) {
+                if (($output = $this->getCache($task['url'])) !== false) {
+                    $hash = $this->urlHash($task['url']);
+                    if (isset($this->taskSet[$hash])) {
+
+                        preg_match("/HTTP\/.+(?=\r\n\r\n)/Usm", $output, $header);
+                        preg_match("/\r\n\r\n([\s\S]*)/", $output, $body);
+
+                        call_user_func_array($this->taskSet[$hash]['callback'],
+                            [
+                                $body['1'],
+                                $this->getHeader($header['0']) + ['url' => $task['url']],
+                                $this->taskSet[$hash]['argv']
+                            ]
+                        );
+                    }
+                    continue;
+                }
+            }
+
             if (!$task['options']) {
                 $task['options'] = &$this->options;
             }
@@ -409,6 +464,24 @@ class CurlUtils
     protected function urlHash($url)
     {
         return md5(substr(strstr($url, '://'), 3));
+    }
+
+
+    /**
+     * get http header
+     * @param string $header
+     * @return array
+     */
+    protected function getHeader($header = '')
+    {
+        $headers = explode("\r\n", $header);
+        array_shift($headers);
+        $result = [];
+        foreach ($headers as $value) {
+            $line = explode(':', $value);
+            $result[$line['0']] = $line['1'];
+        }
+        return $result;
     }
 
 }

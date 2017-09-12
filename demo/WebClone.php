@@ -39,24 +39,24 @@ class WebClone
     }
 
 
-    public function callback($content, $curlInfo = null, $argv = null)
+    public function callback($content, $header = null, $argv = null)
     {
-        $url = $curlInfo['url'];
+        $url = $header['url'];
 
 
         // save file
-        $this->saveFile($curlInfo, $content);
+        $this->saveFile($header, $content);
 
 
-        if (strpos($curlInfo['content_type'], 'text/css')) {
+        if (strpos($header['Content-Type'], 'text/css')) {
             return true;
         }
 
-        if (strpos($curlInfo['content_type'], 'application/x-javascript')) {
+        if (strpos($header['Content-Type'], 'application/x-javascript')) {
             return true;
         }
 
-        if (strpos($curlInfo['content_type'], 'text/html' === false)) {
+        if (strpos($header['Content-Type'], 'text/html' === false)) {
             return true;
         }
 
@@ -161,21 +161,21 @@ class WebClone
     }
 
 
-    protected function saveFile($curlInfo = '', $content = '')
+    protected function saveFile($header = '', $content = '')
     {
         $cacheTime = 3600;
 
-        if (!$curlInfo || !$content) {
+        if (!$header || !$content) {
             return false;
         }
 
-        $parseUrl = parse_url($curlInfo['url']);
+        $parseUrl = parse_url($header['url']);
         if (!isset($parseUrl['path'])) {
             $parseUrl['path'] = '/';
         }
 
         $mimeType = ['html', 'htm'];
-        if ((strpos($curlInfo['content_type'], 'html') !== false)
+        if ((strpos($header['Content-Type'], 'html') !== false)
             && !in_array(substr($parseUrl['path'], strrpos($parseUrl['path'], '.') + 1), $mimeType)
         ) {
             $parseUrl['path'] = rtrim($parseUrl['path'], '/') . '/index.html';
