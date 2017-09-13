@@ -1,5 +1,8 @@
 <?php
 
+ini_set("date.timezone", "UTC");
+ini_set('memory_limit', -1);
+ini_set('max_execution_time', '0');
 
 class WebClone
 {
@@ -43,6 +46,12 @@ class WebClone
     public function callback($content, $header = null, $argv = null)
     {
         $url = $header['url'];
+
+        if(empty($header['Content-Type'])){
+            return false;
+        }
+
+        $options = [CURLOPT_REFERER => $url];
 
 
         // save file
@@ -94,7 +103,7 @@ class WebClone
             $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
-                null,
+                $options,
                 [$this, 'callback'],
                 ['depth' => $argv['depth'] - 1]
             );
@@ -114,7 +123,7 @@ class WebClone
             $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
-                null,
+                $options,
                 [$this, 'callback'],
                 ['depth' => 0]
             );
@@ -134,7 +143,7 @@ class WebClone
             $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
-                null,
+                $options,
                 [$this, 'callback'],
                 ['depth' => 0]
             );
@@ -154,7 +163,7 @@ class WebClone
             $urls = array_unique(array_filter($urls));
             $this->curlUtils->add(
                 $urls,
-                null,
+                $options,
                 [$this, 'callback'],
                 ['depth' => 0]
             );
