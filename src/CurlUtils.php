@@ -244,14 +244,14 @@ class CurlUtils
                     $hash = $this->urlHash(rtrim($i['url'], '/'));
                     if ($i['http_code'] == 200) {
 
-                        preg_match("/HTTP\/[.\d]{3} 200 OK\r\n([\s\S]*)/", $output, $content);
-                        preg_match("/HTTP\/.+(?=\r\n\r\n)/Usm", $content['0'], $header);
-                        preg_match("/\r\n\r\n([\s\S]*)/", $content['0'], $body);
-
                         // set cache
                         if ($this->cacheTime) {
                             $this->setCache($i['url'], $output);
                         }
+
+                        preg_match("/HTTP\/[.\d]{3} 200 OK\r\n([\s\S]*)/", $output, $content);
+                        preg_match("/HTTP\/.+(?=\r\n\r\n)/Usm", $content['0'], $header);
+                        preg_match("/\r\n\r\n([\s\S]*)/", $content['0'], $body);
 
                         if (isset($this->taskSet[$hash])) {
                             $callback = $this->taskSet[$hash]['callback'];
@@ -351,9 +351,13 @@ class CurlUtils
             }
 
             if (!$task['options']) {
-                $task['options'] = &$this->options;
+                $options = &$this->options;
             }
-            curl_multi_add_handle($this->mh, $this->curlInit($task['url'], $task['options']));
+            else {
+                $options = $this->_setOptions($task['options']);
+            }
+
+            curl_multi_add_handle($this->mh, $this->curlInit($task['url'], $options));
 
             $count--;
         }
@@ -482,6 +486,24 @@ class CurlUtils
         foreach ($headers as $value) {
             $line = explode(':', $value);
             $result[$line['0']] = $line['1'];
+        }
+        return $result;
+    }
+
+
+    protected function _setOptions($options = [])
+    {
+        if (!is_array($options)) {
+            return $this->options;
+        }
+        $result = $this->options;
+        foreach ($options as $opt => $value) {
+            if (is_int($opt)) {
+                $result[$opt] = $value;
+            }
+            elseif (defined($opt)) {
+                $result[constant($opt)] = $value;
+            }
         }
         return $result;
     }
