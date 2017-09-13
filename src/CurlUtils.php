@@ -291,7 +291,7 @@ class CurlUtils
 
                         // TODO :: error callback function
 
-                        $this->logger($i['http_code'] . ' ' . $i['url']);
+                        $this->logger('HttpCode: ' . $i['http_code'] . ' ' . $i['url']);
                         $this->info['task_fail'] += 1;
                     }
                 }

@@ -26,6 +26,7 @@ class WebClone
         $this->curlUtils->setOptions([
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
         ]);
+        $this->curlUtils->setCallback([$this, 'callback']);
 
         $this->domain = $this->domain($this->baseUrl);
         $this->curlUtils->add(
