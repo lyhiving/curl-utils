@@ -10,10 +10,10 @@ use Xxtime\CurlUtils\CurlUtils
 $curlUtils = new CurlUtils();
 
 // get method
-$curlUtils->get('https://www.google.com');
+$curlUtils->get('https://www.xxtime.com');
 
 // post method
-$curlUtils->post('https://www.google.com', ['user' => 'XXTIME']);
+$curlUtils->post('https://www.xxtime.com', ['title' => 'XT curlUtils']);
 
 // set custom curl options
 $curlUtils->setOptions([
@@ -33,25 +33,32 @@ class Demo{
 
     public function run(){
         $this->curlUtils = new CurlUtils();
+        $this->curlUtils->setOptions([
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X)',
+        ]);
 
         $urls = [
-            'https://www.google.com',
             'https://www.xxtime.com',
         ];
         $this->curlUtils->add(
             $urls,                  // urls 
-            null,                   // curl options
+            null,                   // set custom curl options for every url
             [$this, 'callback'],    // callback function
-            ['depth' => 5]           // custom argv will be use in callback function
+            ['depth' => 5]          // custom argv will be use in callback function
         );
         $this->curlUtils->run();
     }
 
-    public function callback($content, $curlInfo, $argv){
+    public function callback($content, $header, $argv){
         // do something
 
-        if (strpos($curlInfo['content_type'], 'text/html' === false)) {
-            // not a html page, save content or ignore
+        // no Content-Type then ignore
+        if (empty($header['Content-Type'])) {
+            return false;
+        }
+
+        // not a html page, save content or ignore
+        if (strpos($header['Content-Type'], 'text/html' === false)) {
             return true;
         }
 
@@ -61,11 +68,11 @@ class Demo{
         }
 
         // analysis the html content
-
         // continue to add new tasks into the task pool
+        $options = [CURLOPT_REFERER => $header['url']];
         $this->curlUtils->add(
             $urls,
-            null,
+            $options,
             [$this, 'callback'],
             ['depth' => $argv['depth'] - 1]
         );
