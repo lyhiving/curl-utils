@@ -4,7 +4,9 @@ namespace Xxtime\CurlUtils;
 
 
 /**
- * CurlUtils for spider
+ * @package CurlUtils
+ * @author  Joe
+ * @link    https://github.com/xxtime
  */
 
 class CurlUtils
@@ -20,14 +22,25 @@ class CurlUtils
     protected $options = [
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT        => 30,
-        CURLOPT_HEADER         => true,
+        CURLOPT_HEADER         => false,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_AUTOREFERER    => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS      => 5,
         CURLOPT_COOKIEFILE     => null,
         CURLOPT_COOKIEJAR      => null,
-        CURLOPT_HTTPHEADER     => ['accept-language: en-US,en;q=0.8', 'Cookie: locale=en_US'],
+
+        /**
+         * application/x-www-form-urlencoded
+         * application/json
+         * application/octet-stream
+         * multipart/form-data
+         */
+        CURLOPT_HTTPHEADER     => [
+            'accept-language: en-US,en;q=0.8',
+            'Cookie: locale=en_US',
+            'Content-Type: application/x-www-form-urlencoded;charset=utf-8'
+        ],
         CURLOPT_USERAGENT      => 'CurlUtils (XT) https://github.com/xxtime/curl-utils',
     ];
 
@@ -158,6 +171,46 @@ class CurlUtils
     {
         $options = $this->options;
         $options[CURLOPT_POST] = true;
+        if ($data) {
+            $options[CURLOPT_POSTFIELDS] = $data;
+        }
+        $ch = $this->curlInit($url, $options);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
+
+
+    /**
+     * curl put
+     * @param string $url
+     * @param null $data
+     * @return mixed
+     */
+    public function put($url = '', $data = null)
+    {
+        $options = $this->options;
+        $options[CURLOPT_CUSTOMREQUEST] = 'PUT';
+        if ($data) {
+            $options[CURLOPT_POSTFIELDS] = $data;
+        }
+        $ch = $this->curlInit($url, $options);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
+
+
+    /**
+     * curl delete
+     * @param string $url
+     * @param null $data
+     * @return mixed
+     */
+    public function delete($url = '', $data = null)
+    {
+        $options = $this->options;
+        $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
         if ($data) {
             $options[CURLOPT_POSTFIELDS] = $data;
         }
