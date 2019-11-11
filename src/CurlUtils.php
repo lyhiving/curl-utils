@@ -8,7 +8,6 @@ namespace Xxtime\CurlUtils;
  * @author  Joe
  * @link    https://github.com/xxtime
  */
-
 class CurlUtils
 {
 
@@ -20,15 +19,15 @@ class CurlUtils
 
     // default curl options
     protected $options = [
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_TIMEOUT        => 30,
-        CURLOPT_HEADER         => false,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_AUTOREFERER    => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS      => 5,
-        CURLOPT_COOKIEFILE     => null,
-        CURLOPT_COOKIEJAR      => null,
+        "CURLOPT_CONNECTTIMEOUT" => 10,
+        "CURLOPT_TIMEOUT"        => 30,
+        "CURLOPT_HEADER"         => false,
+        "CURLOPT_RETURNTRANSFER" => true,
+        "CURLOPT_AUTOREFERER"    => true,
+        "CURLOPT_FOLLOWLOCATION" => true,
+        "CURLOPT_MAXREDIRS"      => 5,
+        "CURLOPT_COOKIEFILE"     => null,
+        "CURLOPT_COOKIEJAR"      => null,
 
         /**
          * application/x-www-form-urlencoded
@@ -36,12 +35,12 @@ class CurlUtils
          * application/octet-stream
          * multipart/form-data
          */
-        CURLOPT_HTTPHEADER     => [
+        "CURLOPT_HTTPHEADER"     => [
             'accept-language: en-US,en;q=0.8',
             'Cookie: locale=en_US',
-            'Content-Type: application/x-www-form-urlencoded;charset=utf-8'
+            //'Content-Type: application/x-www-form-urlencoded;charset=utf-8'
         ],
-        CURLOPT_USERAGENT      => 'CurlUtils (XT) https://github.com/xxtime/curl-utils',
+        "CURLOPT_USERAGENT"      => 'CurlUtils (XT) https://github.com/xxtime/curl-utils',
     ];
 
     // curl output info
@@ -84,14 +83,7 @@ class CurlUtils
         if (!is_array($options)) {
             return false;
         }
-        foreach ($options as $opt => $value) {
-            if (is_int($opt)) {
-                $this->options[$opt] = $value;
-            }
-            elseif (defined($opt)) {
-                $this->options[constant($opt)] = $value;
-            }
-        }
+        $this->options += $options;
     }
 
 
@@ -152,10 +144,10 @@ class CurlUtils
                 $url .= '?' . http_build_query($data);
             }
         }
-        $options = $this->options;
-        $options[CURLOPT_HTTPGET] = true;
-        $ch = $this->curlInit($url, $options);
-        $output = curl_exec($ch);
+        $options                    = $this->options;
+        $options["CURLOPT_HTTPGET"] = true;
+        $ch                         = $this->curlInit($url, $options);
+        $output                     = curl_exec($ch);
         curl_close($ch);
         return $output;
     }
@@ -169,12 +161,12 @@ class CurlUtils
      */
     public function post($url = '', $data = null)
     {
-        $options = $this->options;
-        $options[CURLOPT_POST] = true;
+        $options                 = $this->options;
+        $options["CURLOPT_POST"] = true;
         if ($data) {
-            $options[CURLOPT_POSTFIELDS] = $data;
+            $options["CURLOPT_POSTFIELDS"] = $data;
         }
-        $ch = $this->curlInit($url, $options);
+        $ch     = $this->curlInit($url, $options);
         $output = curl_exec($ch);
         curl_close($ch);
         return $output;
@@ -189,12 +181,12 @@ class CurlUtils
      */
     public function put($url = '', $data = null)
     {
-        $options = $this->options;
-        $options[CURLOPT_CUSTOMREQUEST] = 'PUT';
+        $options                          = $this->options;
+        $options["CURLOPT_CUSTOMREQUEST"] = 'PUT';
         if ($data) {
-            $options[CURLOPT_POSTFIELDS] = $data;
+            $options["CURLOPT_POSTFIELDS"] = $data;
         }
-        $ch = $this->curlInit($url, $options);
+        $ch     = $this->curlInit($url, $options);
         $output = curl_exec($ch);
         curl_close($ch);
         return $output;
@@ -209,12 +201,12 @@ class CurlUtils
      */
     public function delete($url = '', $data = null)
     {
-        $options = $this->options;
+        $options                        = $this->options;
         $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
         if ($data) {
             $options[CURLOPT_POSTFIELDS] = $data;
         }
-        $ch = $this->curlInit($url, $options);
+        $ch     = $this->curlInit($url, $options);
         $output = curl_exec($ch);
         curl_close($ch);
         return $output;
@@ -239,7 +231,7 @@ class CurlUtils
         }
 
         foreach ($urls as $url) {
-            $url = trim($url, '/ ');
+            $url  = trim($url, '/ ');
             $hash = $this->urlHash($url);
             if (array_key_exists($hash, $this->taskSet)) {
                 continue;
@@ -441,7 +433,17 @@ class CurlUtils
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, str_replace(' ', '+', trim($url)));
-        curl_setopt_array($ch, $options);
+
+        $curlOptions = [];
+        foreach ($options as $opt => $value) {
+            if (is_int($opt)) {
+                $curlOptions[$opt] = $value;
+            }
+            elseif (defined($opt)) {
+                $curlOptions[constant($opt)] = $value;
+            }
+        }
+        curl_setopt_array($ch, $curlOptions);
         return $ch;
     }
 
@@ -454,12 +456,12 @@ class CurlUtils
     protected function getCache($url = '')
     {
         $hash = $this->urlHash($url);
-        $dir = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
+        $dir  = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
         $path = $dir . '/' . $hash;
 
         if (file_exists($path)) {
             if (time() - filemtime($path) < $this->cacheTime) {
-                $fp = fopen($path, 'r');
+                $fp   = fopen($path, 'r');
                 $file = fread($fp, filesize($path));
                 fclose($fp);
                 return $file;
@@ -481,7 +483,7 @@ class CurlUtils
             return false;
         }
         $hash = $this->urlHash($url);
-        $dir = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
+        $dir  = __DIR__ . '/../cache/' . substr($hash, 0, 2) . '/' . substr($hash, 2, 2);
         $path = $dir . '/' . $hash;
 
         if (!is_dir($dir)) {
@@ -508,7 +510,7 @@ class CurlUtils
     protected function logger($log = '')
     {
         $fileLogs = __DIR__ . '/../logs.txt';
-        $fp = fopen($fileLogs, 'a');
+        $fp       = fopen($fileLogs, 'a');
         flock($fp, LOCK_EX);
         fwrite($fp, date('Y-m-d H:i:sO') . ' | ' . $log . "\r\n");
         flock($fp, LOCK_UN);
@@ -537,7 +539,7 @@ class CurlUtils
         array_shift($headers);
         $result = [];
         foreach ($headers as $value) {
-            $line = explode(':', $value);
+            $line               = explode(':', $value);
             $result[$line['0']] = $line['1'];
         }
         return $result;
