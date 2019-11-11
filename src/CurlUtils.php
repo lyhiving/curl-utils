@@ -38,7 +38,7 @@ class CurlUtils
         "CURLOPT_HTTPHEADER"     => [
             'accept-language: en-US,en;q=0.8',
             'Cookie: locale=en_US',
-            //'Content-Type: application/x-www-form-urlencoded;charset=utf-8'
+            'Content-Type: application/x-www-form-urlencoded;charset=utf-8'
         ],
         "CURLOPT_USERAGENT"      => 'CurlUtils (XT) https://github.com/xxtime/curl-utils',
     ];
@@ -164,7 +164,7 @@ class CurlUtils
         $options                 = $this->options;
         $options["CURLOPT_POST"] = true;
         if ($data) {
-            $options["CURLOPT_POSTFIELDS"] = $data;
+            $options["CURLOPT_POSTFIELDS"] = is_array($data) ? http_build_query($data) : $data;
         }
         $ch     = $this->curlInit($url, $options);
         $output = curl_exec($ch);
