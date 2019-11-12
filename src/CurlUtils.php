@@ -202,9 +202,9 @@ class CurlUtils
     public function delete($url = '', $data = null)
     {
         $options                        = $this->options;
-        $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
+        $options["CURLOPT_CUSTOMREQUEST"] = 'DELETE';
         if ($data) {
-            $options[CURLOPT_POSTFIELDS] = $data;
+            $options["CURLOPT_POSTFIELDS"] = $data;
         }
         $ch     = $this->curlInit($url, $options);
         $output = curl_exec($ch);

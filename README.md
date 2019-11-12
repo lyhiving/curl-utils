@@ -2,6 +2,11 @@
 curl multi for spider and more
 
 
+## Install
+```bash
+composer require xxtime/curl-utils
+```
+
 
 ## How to use it
 
