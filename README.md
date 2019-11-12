@@ -17,8 +17,8 @@ $curlUtils->post('https://www.xxtime.com', ['title' => 'XT curlUtils']);
 
 // set custom curl options
 $curlUtils->setOptions([
-    CURLOPT_TIMEOUT => 20,
-    CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
+    "CURLOPT_TIMEOUT"   => 20,
+    "CURLOPT_USERAGENT" => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
 ]);        
 ```
 
@@ -34,7 +34,7 @@ class Demo{
     public function run(){
         $this->curlUtils = new CurlUtils();
         $this->curlUtils->setOptions([
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X)',
+            "CURLOPT_USERAGENT" => 'Mozilla/5.0 (Macintosh; Intel Mac OS X)',
         ]);
 
         $urls = [
@@ -69,7 +69,7 @@ class Demo{
 
         // analysis the html content
         // continue to add new tasks into the task pool
-        $options = [CURLOPT_REFERER => $header['url']];
+        $options = ["CURLOPT_REFERER" => $header['url']];
         $this->curlUtils->add(
             $urls,
             $options,

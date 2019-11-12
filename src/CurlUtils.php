@@ -551,16 +551,7 @@ class CurlUtils
         if (!is_array($options)) {
             return $this->options;
         }
-        $result = $this->options;
-        foreach ($options as $opt => $value) {
-            if (is_int($opt)) {
-                $result[$opt] = $value;
-            }
-            elseif (defined($opt)) {
-                $result[constant($opt)] = $value;
-            }
-        }
-        return $result;
+        return $this->options + $options;
     }
 
 }
